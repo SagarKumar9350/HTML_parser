@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import https from "https";
 
 const hostname = '127.0.0.1';
 const port = 3000;
@@ -32,12 +33,32 @@ const data =   [
 
 const jsondata = JSON.stringify(data);
 
-const server = createServer((req, res) => {
+
+function fetchHomepage() {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      'https://time.com',
+      { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0', 'Accept-Encoding': 'identity' } },
+      res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => (data += chunk));
+        res.on('end', () => resolve(data));
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+const server = createServer(async (req, res) => {
     if (req.url === '/') {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
         res.end('This is the home page');
     } else if (req.url === '/getTimeStories') {
+        const fetcheddata = await fetchHomepage().then(val =>val).catch(err => console.log(err));
+        console.log(fetcheddata);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
         res.end(jsondata);
